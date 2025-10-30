@@ -468,6 +468,14 @@
         } else {
             [handler reply:nil];
         }
+	} else if ([call.method isEqualToString:@"getAssetGroups"]) {
+        NSString *galleryId = call.arguments[@"id"];
+        int type = [call.arguments[@"type"] intValue];
+        NSObject <PMBaseFilter> *option = [PMConvertUtils convertMapToOptionContainer:call.arguments[@"option"]];
+        int groupBy = [call.arguments[@"groupBy"] intValue];
+        NSDictionary<NSNumber *, NSArray<NSString *> *> *groups = [manager getAssetGroups:galleryId type:type option:option groupBy:groupBy];
+        [handler reply:groups];
+
     } else if ([call.method isEqualToString:@"notify"]) {
         BOOL notify = [call.arguments[@"notify"] boolValue];
         if (notify) {

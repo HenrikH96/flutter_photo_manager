@@ -23,6 +23,7 @@ class PMConstants {
   static const String mGetAssetPathList = 'getAssetPathList';
   static const String mGetAssetListPaged = 'getAssetListPaged';
   static const String mGetAssetListRange = 'getAssetListRange';
+  static const String mGetAssetGroups = 'getAssetGroups';
 
   static const String mGetThumb = 'getThumb';
   static const String mGetOriginBytes = 'getOriginBytes';

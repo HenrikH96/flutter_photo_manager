@@ -47,6 +47,8 @@ class Methods {
         const val getAssetCountFromPath = "getAssetCountFromPath"
         const val getAssetCount = "getAssetCount"
         const val getAssetsByRange = "getAssetsByRange"
+		const val getAssetGroups = "getAssetGroups"
+
 
         private val haveRequestTypeMethods = arrayOf(
             fetchPathProperties,
@@ -56,6 +58,7 @@ class Methods {
             getAssetListRange,
             getAssetCount,
             getAssetsByRange,
+			getAssetGroups,
         )
 
         private fun isHaveRequestTypeMethod(method: String): Boolean {

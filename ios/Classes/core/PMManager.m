@@ -1793,4 +1793,62 @@
     }
 }
 
+// Group assets by time buckets and return a map of bucket(ms since epoch) -> list of asset IDs.
+- (NSDictionary<NSNumber *, NSArray<NSString *> *> *)getAssetGroups:(NSString *)galleryId
+                                                                type:(int)type
+                                                               option:(NSObject<PMBaseFilter> *)option
+                                                              groupBy:(int)groupBy {
+    PHFetchOptions *options = [self getAssetOptions:type filterOption:option];
+
+    PHFetchResult<PHAsset *> *assets = nil;
+    PHAssetCollection *collection = [self getCollectionWithId:galleryId];
+    if (collection) {
+        assets = [PHAsset fetchAssetsInAssetCollection:collection options:options];
+    } else {
+        assets = [PHAsset fetchAssetsWithOptions:options];
+    }
+
+    NSMutableDictionary<NSNumber *, NSMutableArray<NSString *> *> *result = [NSMutableDictionary new];
+
+    NSCalendar *gregorian = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierGregorian];
+    gregorian.firstWeekday = 2; // Monday
+    gregorian.minimumDaysInFirstWeek = 4; // ISO-8601-like weeks
+    NSCalendar *isoCal = [NSCalendar calendarWithIdentifier:NSCalendarIdentifierISO8601];
+
+    for (PHAsset *asset in assets) {
+        NSDate *date = asset.creationDate ?: asset.modificationDate;
+        if (!date) { continue; }
+
+        NSDate *start = nil;
+        if (groupBy == 0) { // year
+            [gregorian rangeOfUnit:NSCalendarUnitYear startDate:&start interval:NULL forDate:date];
+        } else if (groupBy == 1) { // month
+            [gregorian rangeOfUnit:NSCalendarUnitMonth startDate:&start interval:NULL forDate:date];
+        } else if (groupBy == 2) { // ISO week
+            [isoCal rangeOfUnit:NSCalendarUnitWeekOfYear startDate:&start interval:NULL forDate:date];
+        } else { // day
+            [gregorian rangeOfUnit:NSCalendarUnitDay startDate:&start interval:NULL forDate:date];
+        }
+        if (!start) { continue; }
+        long long millis = (long long)llround([start timeIntervalSince1970] * 1000.0);
+        NSNumber *key = @(millis);
+
+        NSMutableArray<NSString *> *list = result[key];
+        if (!list) {
+            list = [NSMutableArray new];
+            result[key] = list;
+        }
+        [list addObject:asset.localIdentifier];
+    }
+
+    // Convert to immutable for channel reply
+    NSMutableDictionary<NSNumber *, NSArray<NSString *> *> *immutable = [NSMutableDictionary new];
+    [result enumerateKeysAndObjectsUsingBlock:^(NSNumber * _Nonnull k, NSMutableArray<NSString *> * _Nonnull obj, BOOL * _Nonnull stop) {
+        immutable[k] = [obj copy];
+    }];
+
+    return immutable;
+}
+
+
 @end

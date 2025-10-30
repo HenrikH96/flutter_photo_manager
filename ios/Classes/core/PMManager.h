@@ -127,6 +127,14 @@ typedef void (^AssetBlockResult)(PMAssetEntity *, NSObject *);
 
 - (NSUInteger) getAssetCountWithType:(int)type option:(NSObject<PMBaseFilter> *) filter;
 
+// Group assets by time buckets and return a map of bucket(ms since epoch) -> list of asset IDs.
+- (NSDictionary<NSNumber *, NSArray<NSString *> *> *)getAssetGroups:(NSString *)galleryId
+                                                                type:(int)type
+                                                               option:(NSObject<PMBaseFilter> *)option
+                                                              groupBy:(int)groupBy;
+
+
+
 - (NSArray<PMAssetEntity*>*) getAssetsWithType:(int)type option:(NSObject<PMBaseFilter> *)option start:(int)start end:(int)end;
 
 @end

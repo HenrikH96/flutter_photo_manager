@@ -59,6 +59,25 @@ enum OrderOptionType {
   updateDate,
 }
 
+/// Granularity for grouping assets by time on native side.
+/// Values order is part of the channel contract. Do not reorder.
+enum GroupBy { year, month, week, day }
+
+extension GroupByExt on GroupBy {
+  int get value {
+    switch (this) {
+      case GroupBy.year:
+        return 0;
+      case GroupBy.month:
+        return 1;
+      case GroupBy.week:
+        return 2;
+      case GroupBy.day:
+        return 3;
+    }
+  }
+}
+
 /// {@template photo_manager.PMRequestState}
 /// Indicate the current state when an asset is loading with [PMProgressHandler].
 /// {@endtemplate}

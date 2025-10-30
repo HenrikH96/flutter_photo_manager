@@ -207,6 +207,45 @@ class PhotoManagerPlugin with BasePlugin, IosPlugin, AndroidPlugin, OhosPlugin {
     return ConvertUtils.convertToAssetList(result.cast());
   }
 
+  /// Obtain assets in Groupes.
+  ///
+  Future<Map<DateTime, List<String>>> getAssetGroups({
+    required String id,
+    required RequestType type,
+    PMFilter? filterOption,
+    required int groupBy,
+  }) async {
+    final Map<dynamic, dynamic>? result = await _channel.invokeMethod(
+      PMConstants.mGetAssetGroups,
+      <String, dynamic>{
+        'id': id,
+        'type': type.value,
+        'option': filterOption?.toMap(),
+        'groupBy': groupBy,
+      },
+    );
+    final map = <DateTime, List<String>>{};
+    if (result == null) return map;
+    result.forEach((k, v) {
+      if (v is List) {
+        int? millis;
+        if (k is int) {
+          millis = k;
+        } else if (k is num) {
+          millis = k.toInt();
+        } else if (k is String) {
+          // Fallback in case native sends stringified millis.
+          millis = int.tryParse(k);
+        }
+        if (millis != null) {
+          final dt = DateTime.fromMillisecondsSinceEpoch(millis);
+          map[dt] = v.cast<String>();
+        }
+      }
+    });
+    return map;
+  }
+
   /// Obtain assets in the specified range.
   ///
   /// The length of returned assets might be less than requested.

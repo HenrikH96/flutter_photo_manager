@@ -6,6 +6,8 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import com.bumptech.glide.Glide
+import java.util.Calendar
+import java.util.Locale
 import com.bumptech.glide.request.FutureTarget
 import com.fluttercandies.photo_manager.core.entity.AssetEntity
 import com.fluttercandies.photo_manager.core.entity.AssetPathEntity
@@ -228,6 +230,98 @@ class PhotoManager(private val context: Context) {
             resultHandler.reply(null)
         }
     }
+
+	    fun getAssetGroups(
+        galleryId: String,
+        typeInt: Int,
+        option: com.fluttercandies.photo_manager.core.entity.filter.FilterOption?,
+        groupBy: Int,
+    ): Map<Long, List<String>> {
+        val cr = context.contentResolver
+        val args = ArrayList<String>()
+        // Build the selection from filter with leading AND so it concatenates correctly.
+        val where = option?.makeWhere(typeInt, args, true)
+
+        val isAll = galleryId == ALL_ID
+        var selection = "${android.provider.MediaStore.MediaColumns.BUCKET_ID} IS NOT NULL"
+        if (where != null) selection += " $where"
+        if (!isAll) {
+            selection += " AND ${android.provider.MediaStore.MediaColumns.BUCKET_ID} = ?"
+            args.add(galleryId)
+        }
+
+        val projection = arrayOf(
+            android.provider.MediaStore.MediaColumns._ID,
+            android.provider.MediaStore.MediaColumns.DATE_TAKEN,
+            android.provider.MediaStore.MediaColumns.DATE_ADDED,
+            android.provider.MediaStore.MediaColumns.DATE_MODIFIED,
+        )
+        val order = option?.orderByCondString()
+        val cursor = cr.query(IDBUtils.allUri, projection, selection, args.toTypedArray(), order)
+
+        val result = LinkedHashMap<Long, MutableList<String>>()
+        if (cursor != null) {
+            cursor.use {
+                val idxId = it.getColumnIndex(android.provider.MediaStore.MediaColumns._ID)
+                val idxTaken = it.getColumnIndex(android.provider.MediaStore.MediaColumns.DATE_TAKEN)
+                val idxAdded = it.getColumnIndex(android.provider.MediaStore.MediaColumns.DATE_ADDED)
+                val idxModified = it.getColumnIndex(android.provider.MediaStore.MediaColumns.DATE_MODIFIED)
+                val cal = Calendar.getInstance(Locale.US)
+                while (it.moveToNext()) {
+                    val id = it.getString(idxId)
+                    var tsSec = 0L
+                    // DATE_TAKEN is in milliseconds on some devices; handle both sec/ms heuristically.
+                    val taken = if (idxTaken >= 0) it.getLong(idxTaken) else 0L
+                    val added = if (idxAdded >= 0) it.getLong(idxAdded) else 0L
+                    val modified = if (idxModified >= 0) it.getLong(idxModified) else 0L
+                    tsSec = when {
+                        taken > 0 -> if (taken > 100000000000L) taken / 1000 else taken // heuristic
+                        added > 0 -> added
+                        else -> modified
+                    }
+                    // Convert seconds -> millis for Calendar
+                    cal.timeInMillis = tsSec * 1000
+                    // Normalize to start of bucket in local time and use millis since epoch as key.
+                    fun zeroTime(c: Calendar) {
+                        c.set(Calendar.HOUR_OF_DAY, 0)
+                        c.set(Calendar.MINUTE, 0)
+                        c.set(Calendar.SECOND, 0)
+                        c.set(Calendar.MILLISECOND, 0)
+                    }
+                    val key: Long = when (groupBy) {
+                        0 -> { // year
+                            cal.set(Calendar.MONTH, Calendar.JANUARY)
+                            cal.set(Calendar.DAY_OF_MONTH, 1)
+                            zeroTime(cal)
+                            cal.timeInMillis
+                        }
+                        1 -> { // month
+                            cal.set(Calendar.DAY_OF_MONTH, 1)
+                            zeroTime(cal)
+                            cal.timeInMillis
+                        }
+                        2 -> { // ISO-like week (Mon start, 4-min days in first week)
+                            cal.firstDayOfWeek = Calendar.MONDAY
+                            cal.minimalDaysInFirstWeek = 4
+                            // Move to Monday of current week
+                            cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
+                            zeroTime(cal)
+                            cal.timeInMillis
+                        }
+                        else -> { // day
+                            zeroTime(cal)
+                            cal.timeInMillis
+                        }
+                    }
+                    val list = result.getOrPut(key) { ArrayList() }
+                    list.add(id)
+                }
+            }
+        }
+        return result
+    }
+
+
 
     fun moveToGallery(assetId: String, albumId: String, resultHandler: ResultHandler) {
         try {

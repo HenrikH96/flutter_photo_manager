@@ -126,6 +126,19 @@ class AssetPathEntity {
   /// The extra information of the album type.
   final AlbumType? albumTypeEx;
 
+  /// Returns grouped asset IDs under this album by the given granularity.
+  /// The returned map keys are start times of the time bucket as DateTime
+  /// (e.g. the start of the day/month/week/year in local time).
+  Future<Map<DateTime, List<String>>> getAssetGroups(
+      {GroupBy by = GroupBy.month}) {
+    return plugin.getAssetGroups(
+      id: id,
+      type: type,
+      filterOption: filterOption,
+      groupBy: by.value,
+    );
+  }
+
   /// Call this method to obtain new path entity.
   static Future<AssetPathEntity> obtainPathFromProperties({
     required String id,
