@@ -370,6 +370,20 @@ class PhotoManagerPlugin(
                 resultHandler.reply(ConvertUtils.convertAssets(list))
             }
 
+            Methods.getAssetGroups -> {
+                val galleryId = call.getString("id")
+                val type = call.getInt("type")
+                val groupBy = call.getInt("groupBy")
+                val option = call.getOption()
+                val grouped = photoManager.getAssetGroups(
+                    galleryId,
+                    type,
+                    option,
+                    groupBy,
+                )
+                resultHandler.reply(grouped)
+            }
+
             Methods.getAssetCountFromPath -> {
                 val galleryId = call.getString("id")
                 val type = call.getInt("type")
