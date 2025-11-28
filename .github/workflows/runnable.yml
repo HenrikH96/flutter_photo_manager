@@ -41,7 +41,9 @@ jobs:
       - name: Prepare dependencies
         run: flutter pub get
       - name: Check Dart code formatting
-        run: dart format . -o none --set-exit-if-changed
+        run: |
+          dart format . --output=write
+          git --no-pager diff --exit-code .
       - name: Analyze lib
         run: flutter analyze lib
       - name: Analyze example
@@ -108,6 +110,9 @@ jobs:
       - run: flutter build apk --release
         name: Build apk
         working-directory: ${{ github.workspace }}/example
+      - name: Run Android unit tests
+        run: ./gradlew photo_manager:test
+        working-directory: ${{ github.workspace }}/example/android
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         id: apk
@@ -188,6 +193,11 @@ jobs:
           channel: 'stable'
           cache: true
       - run: flutter doctor -v
+      - run: flutter pub get
+      - run: cd example; flutter build ios --no-codesign
+      - run: cd example; flutter build macos --debug
+      # With Swift Package Manager
+      - run: flutter config --enable-swift-package-manager
       - run: flutter pub get
       - run: cd example; flutter build ios --no-codesign
       - run: cd example; flutter build macos --debug
